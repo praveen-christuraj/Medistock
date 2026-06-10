@@ -13,6 +13,7 @@ import Suppliers from './pages/Suppliers';
 import BulkUpload from './pages/BulkUpload';
 import Settings from './pages/Settings';
 import SetupGuide from './pages/SetupGuide';
+import AndroidGuide from './pages/AndroidGuide';
 import { Loader2 } from 'lucide-react';
 
 function AppContent() {
@@ -49,8 +50,9 @@ function AppContent() {
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="bulk-upload" element={<BulkUpload />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="setup-guide" element={<SetupGuide />} />
-        </Route>
+            <Route path="setup-guide" element={<SetupGuide />} />
+            <Route path="android-guide" element={<AndroidGuide />} />
+          </Route>
       </Routes>
     </AnalyticsProvider>
   );

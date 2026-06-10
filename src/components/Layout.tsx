@@ -34,6 +34,7 @@ const navigation = [
   { name: 'Bulk Upload', href: '/bulk-upload', icon: Upload },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Setup Guide', href: '/setup-guide', icon: Rocket },
+  { name: 'Android Guide', href: '/android-guide', icon: Map },
   { name: 'Project Plan', href: '/project-plan', icon: Map },
 ];
 
