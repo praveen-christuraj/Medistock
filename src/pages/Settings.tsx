@@ -26,6 +26,9 @@ import { useData } from '../context/DataContext';
 export default function Settings() {
   const { user } = useAuth();
   const {
+    loading,
+    reloading,
+    lastSyncAt,
     categories,
     units,
     appSettings,
@@ -152,6 +155,22 @@ export default function Settings() {
       confirmPassword: '',
     });
   };
+
+  const syncStatusLabel = reloading || loading
+    ? 'Checking connection'
+    : lastSyncAt
+      ? 'Connected'
+      : 'Not verified';
+
+  const syncStatusClasses = reloading || loading
+    ? 'bg-yellow-100 text-yellow-700'
+    : lastSyncAt
+      ? 'bg-green-100 text-green-700'
+      : 'bg-gray-100 text-gray-700';
+
+  const lastSyncLabel = lastSyncAt
+    ? new Date(lastSyncAt).toLocaleString()
+    : 'No successful sync yet';
 
   return (
     <div className="space-y-6">
@@ -657,15 +676,15 @@ export default function Settings() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">Last Sync</span>
-                    <span className="font-medium text-gray-900">Today, 2:45 PM</span>
+                    <span className="font-medium text-gray-900">{lastSyncLabel}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">Pending Records</span>
-                    <span className="font-medium text-gray-900">0</span>
+                    <span className="font-medium text-gray-900">Not tracked in web app</span>
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-gray-600">Connection Status</span>
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">Connected</span>
+                    <span className={`px-2 py-1 text-sm font-medium rounded-full ${syncStatusClasses}`}>{syncStatusLabel}</span>
                   </div>
                 </div>
                 <div className="mt-4">

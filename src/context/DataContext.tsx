@@ -112,6 +112,7 @@ interface PurchaseCreateInput {
 interface DataContextType {
   loading: boolean;
   reloading: boolean;
+  lastSyncAt: string | null;
   categories: Category[];
   units: Unit[];
   appSettings: AppSettings;
@@ -246,6 +247,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [appSettingsRecord, setAppSettingsRecord] = useState<AppSettingsRecord | null>(null);
@@ -267,6 +269,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSales([]);
       setPurchases([]);
       setAppSettingsRecord(null);
+      setLastSyncAt(null);
       setLoading(false);
       return;
     }
@@ -397,6 +400,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSuppliers(loadedSuppliers);
       setSales(buildSales(salesResult.data, saleItemsResult.data));
       setPurchases(buildPurchases(purchasesResult.data, purchaseItemsResult.data, loadedSuppliers));
+      setLastSyncAt(new Date().toISOString());
 
       if (appSettingsResult.data) {
         setAppSettingsRecord({
@@ -749,6 +753,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DataContextType>(() => ({
     loading,
     reloading,
+    lastSyncAt,
     categories,
     units,
     appSettings: appSettingsRecord
@@ -794,6 +799,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     deleteSupplier,
     deleteUnit,
     loading,
+    lastSyncAt,
     medicineBatches,
     medicines,
     purchases,

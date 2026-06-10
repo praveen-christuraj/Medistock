@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Plus,
   Search,
@@ -10,7 +10,7 @@ import {
   Save,
   Trash2
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { endOfMonth, format, isWithinInterval, startOfMonth } from 'date-fns';
 import { useData } from '../context/DataContext';
 
 interface PurchaseItem {
@@ -78,6 +78,24 @@ export default function Purchase() {
     order.supplier_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const purchaseStats = useMemo(() => {
+    const now = new Date();
+    const monthRange = {
+      start: startOfMonth(now),
+      end: endOfMonth(now),
+    };
+
+    const thisMonthPurchases = purchases.filter((purchase) =>
+      isWithinInterval(new Date(purchase.created_at), monthRange)
+    );
+
+    return {
+      thisMonthTotal: thisMonthPurchases.reduce((sum, purchase) => sum + purchase.total, 0),
+      pendingPayments: purchases.filter((purchase) => purchase.payment_status === 'pending').length,
+      thisMonthOrders: thisMonthPurchases.length,
+    };
+  }, [purchases]);
+
   const handleCreatePurchase = async () => {
     await createPurchase({
       supplier_id: selectedSupplier,
@@ -129,7 +147,7 @@ export default function Purchase() {
               <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">₹50,150</p>
+              <p className="text-2xl font-bold text-gray-900">₹{purchaseStats.thisMonthTotal.toLocaleString()}</p>
               <p className="text-sm text-gray-500">This Month's Purchases</p>
             </div>
           </div>
@@ -140,7 +158,7 @@ export default function Purchase() {
               <Package className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">2</p>
+              <p className="text-2xl font-bold text-gray-900">{purchaseStats.pendingPayments}</p>
               <p className="text-sm text-gray-500">Pending Payments</p>
             </div>
           </div>
@@ -151,7 +169,7 @@ export default function Purchase() {
               <Package className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">16</p>
+              <p className="text-2xl font-bold text-gray-900">{purchaseStats.thisMonthOrders}</p>
               <p className="text-sm text-gray-500">Orders This Month</p>
             </div>
           </div>
