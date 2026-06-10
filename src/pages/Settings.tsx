@@ -80,7 +80,7 @@ export default function Settings() {
     { id: 'profile', name: 'Profile', icon: User },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Security', icon: Shield },
-    { id: 'database', name: 'Database Setup', icon: Database },
+    { id: 'database', name: 'Supabase Setup Guide', icon: Database },
     { id: 'sync', name: 'Sync Settings', icon: Cloud }
   ];
 
@@ -534,29 +534,35 @@ export default function Settings() {
           {activeTab === 'database' && (
             <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Supabase Configuration</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Supabase Connection Info</h2>
                 <p className="text-gray-600 mb-6">
-                  Connect your application to Supabase for cloud database storage and real-time sync.
+                  This section is informational only. The live web app reads its Supabase URL and publishable key from local environment variables during startup.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Supabase Project URL</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supabase Project URL Reference</label>
                     <input
                       type="url"
+                      value="Configured via VITE_SUPABASE_URL in .env.local"
+                      disabled
                       placeholder="https://your-project.supabase.co"
-                      className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 bg-gray-100 rounded-xl border border-gray-200 text-gray-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Change the real project URL in your local `.env.local` file, then restart the app.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Anon/Public Key</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Anon/Public Key Reference</label>
                     <div className="relative">
                       <input
                         type="password"
+                        value="Configured via VITE_SUPABASE_ANON_KEY in .env.local"
+                        disabled
                         placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                        className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500 pr-12"
+                        className="w-full px-4 py-2.5 bg-gray-100 rounded-xl border border-gray-200 text-gray-500 pr-12"
                       />
                       <Key className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">This page does not store credentials. It only documents where the active frontend key comes from.</p>
                   </div>
                   <div className="pt-4">
                     <button
@@ -564,8 +570,9 @@ export default function Settings() {
                       className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
                     >
                       <Save className="w-5 h-5" />
-                      Save & Test Connection
+                      Reload Current Connection
                     </button>
+                    <p className="text-xs text-gray-500 mt-2">This reloads data using the existing Supabase client. It does not switch the app to a different project.</p>
                   </div>
                 </div>
               </div>
