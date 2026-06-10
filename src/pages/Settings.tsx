@@ -21,8 +21,10 @@ import {
 import { DATABASE_SCHEMA } from '../lib/supabase';
 import { defaultCategories, defaultUnits, defaultAppSettings } from '../data/mockData';
 import { Category, Unit, AppSettings } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('shop');
   const [showSchema, setShowSchema] = useState(false);
   
@@ -415,12 +417,15 @@ export default function Settings() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">AD</span>
+                    <span className="text-2xl font-bold text-white">
+                      {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
+                    </span>
                   </div>
                   <div>
-                    <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
-                      Change Photo
-                    </button>
+                    <p className="text-lg font-semibold text-gray-900">{user?.name || 'User'}</p>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 mt-1">
+                      {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff'}
+                    </span>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -428,7 +433,7 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                     <input
                       type="text"
-                      defaultValue="Admin User"
+                      defaultValue={user?.name || ''}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -436,15 +441,18 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input
                       type="email"
-                      defaultValue="admin@medstock.com"
-                      className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={user?.email || ''}
+                      disabled
+                      className="w-full px-4 py-2.5 bg-gray-100 rounded-xl border border-gray-200 text-gray-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Email is managed via Supabase Auth</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     <input
                       type="tel"
-                      defaultValue="+91 9876543210"
+                      defaultValue={user?.phone || ''}
+                      placeholder="Enter phone number"
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -452,10 +460,11 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <input
                       type="text"
-                      defaultValue="Administrator"
+                      value={user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff'}
                       disabled
                       className="w-full px-4 py-2.5 bg-gray-100 rounded-xl border border-gray-200 text-gray-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Role is managed via Supabase profiles table</p>
                   </div>
                 </div>
                 <div className="pt-4">
@@ -463,6 +472,17 @@ export default function Settings() {
                     <Save className="w-5 h-5" />
                     Save Changes
                   </button>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <h3 className="font-medium text-gray-900 mb-2">Managing Users</h3>
+                  <p className="text-sm text-gray-600">
+                    To add new staff users, go to your{' '}
+                    <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-emerald-600 underline font-medium">
+                      Supabase Dashboard
+                    </a>
+                    {' '}→ Authentication → Users → Add User. New users will automatically get a profile created.
+                  </p>
                 </div>
               </div>
             </div>
