@@ -11,10 +11,11 @@ import {
   X,
   Save
 } from 'lucide-react';
-import { mockSuppliers } from '../data/mockData';
 import { Supplier } from '../types';
+import { useData } from '../context/DataContext';
 
 export default function Suppliers() {
+  const { suppliers, saveSupplier, deleteSupplier } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -28,16 +29,31 @@ export default function Suppliers() {
     gst_number: ''
   });
 
-  const filteredSuppliers = mockSuppliers.filter(supplier =>
+  const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     supplier.contact_person.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSubmit = () => {
-    alert(`Supplier ${editingSupplier ? 'updated' : 'added'} successfully!`);
+  const handleSubmit = async () => {
+    await saveSupplier({
+      id: editingSupplier?.id,
+      name: formData.name || '',
+      contact_person: formData.contact_person || '',
+      phone: formData.phone || '',
+      email: formData.email,
+      address: formData.address || '',
+      gst_number: formData.gst_number,
+    });
     setShowAddModal(false);
     setEditingSupplier(null);
-    setFormData({});
+    setFormData({
+      name: '',
+      contact_person: '',
+      phone: '',
+      email: '',
+      address: '',
+      gst_number: ''
+    });
   };
 
   const openEditModal = (supplier: Supplier) => {
@@ -104,7 +120,10 @@ export default function Suppliers() {
                 >
                   <Edit className="w-4 h-4" />
                 </button>
-                <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <button
+                  onClick={() => void deleteSupplier(supplier.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -235,7 +254,7 @@ export default function Suppliers() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => void handleSubmit()}
                   className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
                 >
                   <Save className="w-5 h-5" />

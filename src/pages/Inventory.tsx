@@ -19,13 +19,22 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { mockMedicines, mockMedicineBatches, defaultCategories, defaultUnits, mockStockHistory } from '../data/mockData';
 import { Medicine, Category, Unit } from '../types';
+import { useData } from '../context/DataContext';
 
 type StockFilter = 'all' | 'in-stock' | 'low-stock' | 'out-of-stock';
 type ExpiryFilter = 'all' | 'expiring-30' | 'expiring-90' | 'expired';
 
 export default function Inventory() {
+  const {
+    categories,
+    units,
+    medicines,
+    medicineBatches,
+    stockHistory,
+    createMedicineWithBatch,
+    restockMedicine,
+  } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -39,10 +48,6 @@ export default function Inventory() {
   const [expandedMedicine, setExpandedMedicine] = useState<string | null>(null);
   const [selectedMedicineForRestock, setSelectedMedicineForRestock] = useState<Medicine | null>(null);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
-
-  // Use state for categories and units (these would come from settings/database)
-  const [categories] = useState<Category[]>(defaultCategories);
-  const [units] = useState<Unit[]>(defaultUnits);
 
   // Form states
   const [medicineForm, setMedicineForm] = useState<Partial<Medicine>>({
@@ -64,8 +69,8 @@ export default function Inventory() {
 
   // Get medicines with their total stock and batch info
   const medicinesWithStock = useMemo(() => {
-    return mockMedicines.map(med => {
-      const batches = mockMedicineBatches.filter(b => b.medicine_id === med.id)
+    return medicines.map(med => {
+      const batches = medicineBatches.filter(b => b.medicine_id === med.id)
         .sort((a, b) => new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime());
       
       const totalStock = batches.reduce((sum, b) => sum + b.quantity, 0);
@@ -82,7 +87,7 @@ export default function Inventory() {
         daysToExpiry
       };
     });
-  }, []);
+  }, [medicineBatches, medicines]);
 
   // Apply all filters
   const filteredMedicines = useMemo(() => {
@@ -119,8 +124,8 @@ export default function Inventory() {
   }, [medicinesWithStock, searchQuery, filterCategory, stockFilter, expiryFilter]);
 
   // Stats
-  const totalProducts = mockMedicines.length;
-  const totalBatches = mockMedicineBatches.length;
+  const totalProducts = medicines.length;
+  const totalBatches = medicineBatches.length;
   const lowStockCount = medicinesWithStock.filter(m => m.totalStock <= 10 && m.totalStock > 0).length;
   const outOfStockCount = medicinesWithStock.filter(m => m.totalStock === 0).length;
   const expiringCount = medicinesWithStock.filter(m => m.daysToExpiry !== null && m.daysToExpiry >= 0 && m.daysToExpiry <= 90).length;
@@ -136,7 +141,7 @@ export default function Inventory() {
 
   // Check for duplicate medicine name
   const checkDuplicate = (name: string): Medicine | undefined => {
-    return mockMedicines.find(m => 
+    return medicines.find(m => 
       m.name.toLowerCase().trim() === name.toLowerCase().trim() && 
       m.id !== editingMedicine?.id
     );
@@ -154,12 +159,30 @@ export default function Inventory() {
     }
   };
 
-  const handleAddMedicine = () => {
+  const handleAddMedicine = async () => {
     if (showDuplicateWarning) {
       alert('Please resolve the duplicate medicine name first!');
       return;
     }
-    alert(`Medicine "${medicineForm.name}" added with batch ${batchForm.batch_number}!`);
+
+    await createMedicineWithBatch({
+      medicine: {
+        name: medicineForm.name || '',
+        generic_name: medicineForm.generic_name || '',
+        manufacturer: medicineForm.manufacturer || '',
+        category_id: medicineForm.category_id || '',
+        unit_id: medicineForm.unit_id || '',
+        rack_location: medicineForm.rack_location || '',
+      },
+      batch: {
+        batch_number: batchForm.batch_number,
+        purchase_price: batchForm.purchase_price,
+        selling_price: batchForm.selling_price,
+        quantity: batchForm.quantity,
+        expiry_date: batchForm.expiry_date,
+      }
+    });
+
     setShowAddMedicineModal(false);
     resetForms();
   };
@@ -174,8 +197,19 @@ export default function Inventory() {
     }
   };
 
-  const handleRestock = () => {
-    alert(`Restocked ${batchForm.quantity} units of "${selectedMedicineForRestock?.name}" with batch ${batchForm.batch_number}!`);
+  const handleRestock = async () => {
+    if (!selectedMedicineForRestock) return;
+
+    await restockMedicine({
+      medicineId: selectedMedicineForRestock.id,
+      medicineName: selectedMedicineForRestock.name,
+      batch_number: batchForm.batch_number,
+      purchase_price: batchForm.purchase_price,
+      selling_price: batchForm.selling_price,
+      quantity: batchForm.quantity,
+      expiry_date: batchForm.expiry_date,
+    });
+
     setShowRestockModal(false);
     resetForms();
   };
@@ -985,7 +1019,7 @@ export default function Inventory() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {mockStockHistory.map((history) => (
+                    {stockHistory.map((history) => (
                       <tr key={history.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {format(new Date(history.created_at), 'dd MMM yyyy, hh:mm a')}

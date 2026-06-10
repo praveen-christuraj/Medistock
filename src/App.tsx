@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AnalyticsProvider } from './context/AnalyticsContext';
+import { DataProvider } from './context/DataContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -38,23 +39,25 @@ function AppContent() {
 
   // Show app if authenticated
   return (
-    <AnalyticsProvider>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="project-plan" element={<ProjectPlan />} />
-          <Route path="sales" element={<Sales />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="purchase" element={<Purchase />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="bulk-upload" element={<BulkUpload />} />
-          <Route path="settings" element={<Settings />} />
-            <Route path="setup-guide" element={<SetupGuide />} />
-            <Route path="android-guide" element={<AndroidGuide />} />
-          </Route>
-      </Routes>
-    </AnalyticsProvider>
+    <DataProvider>
+      <AnalyticsProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="project-plan" element={<ProjectPlan />} />
+            <Route path="sales" element={<Sales />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="purchase" element={<Purchase />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="bulk-upload" element={<BulkUpload />} />
+            <Route path="settings" element={<Settings />} />
+              <Route path="setup-guide" element={<SetupGuide />} />
+              <Route path="android-guide" element={<AndroidGuide />} />
+            </Route>
+        </Routes>
+      </AnalyticsProvider>
+    </DataProvider>
   );
 }
 

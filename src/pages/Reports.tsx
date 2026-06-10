@@ -31,10 +31,10 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { useAnalytics } from '../context/AnalyticsContext';
+import { useData } from '../context/DataContext';
 import DateSlicer from '../components/analytics/DateSlicer';
 import StatementTable from '../components/analytics/StatementTable';
 import KPICard from '../components/analytics/KPICard';
-import { mockMedicineBatches, mockMedicines } from '../data/mockData';
 import { differenceInDays } from 'date-fns';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
@@ -63,13 +63,14 @@ const reportTypes: ReportConfig[] = [
 
 export default function Reports() {
   const { filters, data, drillDown, drillUp, drillPath, setPeriodType } = useAnalytics();
+  const { medicineBatches, medicines } = useData();
   const [selectedReport, setSelectedReport] = useState<ReportType | ''>('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [expiryDays, setExpiryDays] = useState(90);
 
   // Inventory calculations
-  const inventoryData = mockMedicines.map(med => {
-    const batches = mockMedicineBatches.filter(b => b.medicine_id === med.id);
+  const inventoryData = medicines.map(med => {
+    const batches = medicineBatches.filter(b => b.medicine_id === med.id);
     const totalStock = batches.reduce((sum, b) => sum + b.quantity, 0);
     const stockValue = batches.reduce((sum, b) => sum + (b.quantity * b.purchase_price), 0);
     const retailValue = batches.reduce((sum, b) => sum + (b.quantity * b.selling_price), 0);
@@ -86,7 +87,7 @@ export default function Reports() {
   const lowStockItems = inventoryData.filter(item => item.stock > 0 && item.stock <= 10);
   const outOfStockItems = inventoryData.filter(item => item.stock === 0);
 
-  const expiringBatches = mockMedicineBatches.filter(batch => {
+  const expiringBatches = medicineBatches.filter(batch => {
     const days = differenceInDays(new Date(batch.expiry_date), new Date());
     return days >= 0 && days <= expiryDays;
   }).map(batch => ({
@@ -444,8 +445,8 @@ export default function Reports() {
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KPICard title="Total Products" value={mockMedicines.length} icon={Package} />
-              <KPICard title="Total Batches" value={mockMedicineBatches.length} />
+              <KPICard title="Total Products" value={medicines.length} icon={Package} />
+              <KPICard title="Total Batches" value={medicineBatches.length} />
               <KPICard title="Stock Value" value={totalInventoryValue} prefix="₹" />
               <KPICard title="Retail Value" value={totalRetailValue} prefix="₹" />
             </div>
@@ -500,7 +501,7 @@ export default function Reports() {
 
             <div className="grid grid-cols-2 gap-4">
               <KPICard title="Expiring Soon" value={`${expiringBatches.length} batches`} colorClass="bg-orange-50" />
-              <KPICard title="Already Expired" value={`${mockMedicineBatches.filter(b => differenceInDays(new Date(b.expiry_date), new Date()) < 0).length} batches`} colorClass="bg-red-50" />
+              <KPICard title="Already Expired" value={`${medicineBatches.filter(b => differenceInDays(new Date(b.expiry_date), new Date()) < 0).length} batches`} colorClass="bg-red-50" />
             </div>
 
             <div className="bg-white rounded-xl border overflow-hidden">

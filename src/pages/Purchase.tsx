@@ -11,63 +11,37 @@ import {
   Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { mockSuppliers, mockMedicines } from '../data/mockData';
+import { useData } from '../context/DataContext';
 
 interface PurchaseItem {
   id: string;
+  medicine_id: string;
   medicine_name: string;
   batch_number: string;
   quantity: number;
-  unit_price: number;
+  purchase_price: number;
+  selling_price: number;
   total_price: number;
   expiry_date: string;
 }
 
 export default function Purchase() {
+  const { suppliers, medicines, purchases, createPurchase } = useData();
   const [showNewPurchase, setShowNewPurchase] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
 
-  // Mock purchase orders
-  const purchaseOrders = [
-    {
-      id: '1',
-      supplier_name: 'Cipla Distributors',
-      invoice_number: 'PO2024001',
-      items_count: 5,
-      total: 12500,
-      payment_status: 'paid',
-      created_at: '2024-01-20T10:00:00'
-    },
-    {
-      id: '2',
-      supplier_name: 'Sun Pharma Wholesale',
-      invoice_number: 'PO2024002',
-      items_count: 8,
-      total: 28750,
-      payment_status: 'pending',
-      created_at: '2024-01-22T14:30:00'
-    },
-    {
-      id: '3',
-      supplier_name: 'Zydus Medical Supplies',
-      invoice_number: 'PO2024003',
-      items_count: 3,
-      total: 8900,
-      payment_status: 'partial',
-      created_at: '2024-01-24T09:15:00'
-    }
-  ];
-
   const addPurchaseItem = () => {
     const newItem: PurchaseItem = {
       id: Date.now().toString(),
+      medicine_id: '',
       medicine_name: '',
       batch_number: '',
       quantity: 1,
-      unit_price: 0,
+      purchase_price: 0,
+      selling_price: 0,
       total_price: 0,
       expiry_date: ''
     };
@@ -79,8 +53,12 @@ export default function Purchase() {
       items.map(item => {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
-          if (field === 'quantity' || field === 'unit_price') {
-            updated.total_price = Number(updated.quantity) * Number(updated.unit_price);
+          if (field === 'quantity' || field === 'purchase_price') {
+            updated.total_price = Number(updated.quantity) * Number(updated.purchase_price);
+          }
+          if (field === 'medicine_name') {
+            const matchedMedicine = medicines.find((medicine) => medicine.name === value);
+            updated.medicine_id = matchedMedicine?.id || '';
           }
           return updated;
         }
@@ -95,8 +73,31 @@ export default function Purchase() {
 
   const subtotal = purchaseItems.reduce((sum, item) => sum + item.total_price, 0);
 
-  const handleCreatePurchase = () => {
-    alert(`Purchase order created!\nSupplier: ${selectedSupplier}\nTotal: ₹${subtotal}`);
+  const filteredPurchases = purchases.filter((order) =>
+    order.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    order.supplier_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCreatePurchase = async () => {
+    await createPurchase({
+      supplier_id: selectedSupplier,
+      invoice_number: invoiceNumber,
+      subtotal,
+      tax: 0,
+      total: subtotal,
+      payment_status: 'pending',
+      items: purchaseItems.map((item) => ({
+        medicine_id: item.medicine_id,
+        medicine_name: item.medicine_name,
+        batch_number: item.batch_number,
+        quantity: item.quantity,
+        purchase_price: item.purchase_price,
+        selling_price: item.selling_price,
+        total_price: item.total_price,
+        expiry_date: item.expiry_date,
+      })),
+    });
+
     setShowNewPurchase(false);
     setPurchaseItems([]);
     setSelectedSupplier('');
@@ -205,7 +206,7 @@ export default function Purchase() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {purchaseOrders.map((order) => (
+              {filteredPurchases.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <span className="font-medium text-emerald-600">{order.invoice_number}</span>
@@ -215,7 +216,7 @@ export default function Purchase() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {order.items_count} items
+                      {order.items.length} items
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -278,8 +279,8 @@ export default function Purchase() {
                     className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">Select Supplier</option>
-                    {mockSuppliers.map(supplier => (
-                      <option key={supplier.id} value={supplier.name}>{supplier.name}</option>
+                    {suppliers.map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                     ))}
                   </select>
                 </div>
@@ -334,7 +335,7 @@ export default function Purchase() {
                             list={`medicines-${index}`}
                           />
                           <datalist id={`medicines-${index}`}>
-                            {mockMedicines.map(med => (
+                            {medicines.map(med => (
                               <option key={med.id} value={med.name} />
                             ))}
                           </datalist>
@@ -360,11 +361,21 @@ export default function Purchase() {
                           />
                         </div>
                         <div className="col-span-6 sm:col-span-2">
-                          <label className="block text-xs text-gray-500 mb-1">Unit Price</label>
+                          <label className="block text-xs text-gray-500 mb-1">Purchase Price</label>
                           <input
                             type="number"
-                            value={item.unit_price}
-                            onChange={(e) => updatePurchaseItem(item.id, 'unit_price', Number(e.target.value))}
+                            value={item.purchase_price}
+                            onChange={(e) => updatePurchaseItem(item.id, 'purchase_price', Number(e.target.value))}
+                            className="w-full px-3 py-2 bg-white rounded-lg border border-gray-200 text-sm"
+                            placeholder="₹0.00"
+                          />
+                        </div>
+                        <div className="col-span-6 sm:col-span-2">
+                          <label className="block text-xs text-gray-500 mb-1">Selling Price</label>
+                          <input
+                            type="number"
+                            value={item.selling_price}
+                            onChange={(e) => updatePurchaseItem(item.id, 'selling_price', Number(e.target.value))}
                             className="w-full px-3 py-2 bg-white rounded-lg border border-gray-200 text-sm"
                             placeholder="₹0.00"
                           />
@@ -413,7 +424,7 @@ export default function Purchase() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreatePurchase}
+                  onClick={() => void handleCreatePurchase()}
                   disabled={!selectedSupplier || purchaseItems.length === 0}
                   className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >

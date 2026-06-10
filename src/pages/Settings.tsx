@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User,
   Store,
@@ -19,18 +19,29 @@ import {
   Percent
 } from 'lucide-react';
 import { DATABASE_SCHEMA } from '../lib/supabase';
-import { defaultCategories, defaultUnits, defaultAppSettings } from '../data/mockData';
 import { Category, Unit, AppSettings } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 
 export default function Settings() {
   const { user } = useAuth();
+  const {
+    categories,
+    units,
+    appSettings,
+    refreshData,
+    saveAppSettings,
+    saveCategory,
+    deleteCategory,
+    saveUnit,
+    deleteUnit,
+    updateProfile,
+    updatePassword,
+  } = useData();
   const [activeTab, setActiveTab] = useState('shop');
   const [showSchema, setShowSchema] = useState(false);
   
   // Categories & Units state
-  const [categories, setCategories] = useState<Category[]>(defaultCategories);
-  const [units, setUnits] = useState<Unit[]>(defaultUnits);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -39,7 +50,27 @@ export default function Settings() {
   const [unitForm, setUnitForm] = useState({ name: '', short_name: '' });
   
   // App Settings state
-  const [appSettings, setAppSettings] = useState<AppSettings>(defaultAppSettings);
+  const [localAppSettings, setLocalAppSettings] = useState<AppSettings>(appSettings);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  useEffect(() => {
+    setLocalAppSettings(appSettings);
+  }, [appSettings]);
+
+  useEffect(() => {
+    setProfileForm({
+      name: user?.name || '',
+      phone: user?.phone || '',
+    });
+  }, [user?.name, user?.phone]);
 
   const tabs = [
     { id: 'shop', name: 'Shop Details', icon: Store },
@@ -54,30 +85,20 @@ export default function Settings() {
   ];
 
   // Category handlers
-  const handleSaveCategory = () => {
-    if (editingCategory) {
-      setCategories(cats => cats.map(c => 
-        c.id === editingCategory.id 
-          ? { ...c, name: categoryForm.name, description: categoryForm.description }
-          : c
-      ));
-    } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        name: categoryForm.name,
-        description: categoryForm.description,
-        created_at: new Date().toISOString()
-      };
-      setCategories([...categories, newCategory]);
-    }
+  const handleSaveCategory = async () => {
+    await saveCategory({
+      id: editingCategory?.id,
+      name: categoryForm.name,
+      description: categoryForm.description,
+    });
     setShowCategoryModal(false);
     setCategoryForm({ name: '', description: '' });
     setEditingCategory(null);
   };
 
-  const handleDeleteCategory = (id: string) => {
+  const handleDeleteCategory = async (id: string) => {
     if (confirm('Are you sure you want to delete this category?')) {
-      setCategories(cats => cats.filter(c => c.id !== id));
+      await deleteCategory(id);
     }
   };
 
@@ -88,30 +109,20 @@ export default function Settings() {
   };
 
   // Unit handlers
-  const handleSaveUnit = () => {
-    if (editingUnit) {
-      setUnits(u => u.map(unit => 
-        unit.id === editingUnit.id 
-          ? { ...unit, name: unitForm.name, short_name: unitForm.short_name }
-          : unit
-      ));
-    } else {
-      const newUnit: Unit = {
-        id: Date.now().toString(),
-        name: unitForm.name,
-        short_name: unitForm.short_name,
-        created_at: new Date().toISOString()
-      };
-      setUnits([...units, newUnit]);
-    }
+  const handleSaveUnit = async () => {
+    await saveUnit({
+      id: editingUnit?.id,
+      name: unitForm.name,
+      short_name: unitForm.short_name,
+    });
     setShowUnitModal(false);
     setUnitForm({ name: '', short_name: '' });
     setEditingUnit(null);
   };
 
-  const handleDeleteUnit = (id: string) => {
+  const handleDeleteUnit = async (id: string) => {
     if (confirm('Are you sure you want to delete this unit?')) {
-      setUnits(u => u.filter(unit => unit.id !== id));
+      await deleteUnit(id);
     }
   };
 
@@ -119,6 +130,27 @@ export default function Settings() {
     setEditingUnit(unit);
     setUnitForm({ name: unit.name, short_name: unit.short_name });
     setShowUnitModal(true);
+  };
+
+  const handleSaveShopSettings = async () => {
+    await saveAppSettings(localAppSettings);
+  };
+
+  const handleSaveProfile = async () => {
+    await updateProfile(profileForm);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword) {
+      throw new Error('Passwords do not match.');
+    }
+
+    await updatePassword(passwordForm.newPassword);
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
   };
 
   return (
@@ -161,16 +193,16 @@ export default function Settings() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
                   <input
                     type="text"
-                    value={appSettings.shop_name}
-                    onChange={(e) => setAppSettings({ ...appSettings, shop_name: e.target.value })}
+                    value={localAppSettings.shop_name}
+                    onChange={(e) => setLocalAppSettings({ ...localAppSettings, shop_name: e.target.value })}
                     className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                   <textarea
-                    value={appSettings.shop_address}
-                    onChange={(e) => setAppSettings({ ...appSettings, shop_address: e.target.value })}
+                    value={localAppSettings.shop_address}
+                    onChange={(e) => setLocalAppSettings({ ...localAppSettings, shop_address: e.target.value })}
                     rows={2}
                     className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                   />
@@ -180,8 +212,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Drug License No.</label>
                     <input
                       type="text"
-                      value={appSettings.drug_license}
-                      onChange={(e) => setAppSettings({ ...appSettings, drug_license: e.target.value })}
+                      value={localAppSettings.drug_license}
+                      onChange={(e) => setLocalAppSettings({ ...localAppSettings, drug_license: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -189,8 +221,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
                     <input
                       type="text"
-                      value={appSettings.gst_number}
-                      onChange={(e) => setAppSettings({ ...appSettings, gst_number: e.target.value })}
+                      value={localAppSettings.gst_number}
+                      onChange={(e) => setLocalAppSettings({ ...localAppSettings, gst_number: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -200,8 +232,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label>
                     <input
                       type="number"
-                      value={appSettings.low_stock_threshold}
-                      onChange={(e) => setAppSettings({ ...appSettings, low_stock_threshold: Number(e.target.value) })}
+                      value={localAppSettings.low_stock_threshold}
+                      onChange={(e) => setLocalAppSettings({ ...localAppSettings, low_stock_threshold: Number(e.target.value) })}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">Alert when stock falls below this number</p>
@@ -210,15 +242,18 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Alert Days</label>
                     <input
                       type="number"
-                      value={appSettings.expiry_alert_days}
-                      onChange={(e) => setAppSettings({ ...appSettings, expiry_alert_days: Number(e.target.value) })}
+                      value={localAppSettings.expiry_alert_days}
+                      onChange={(e) => setLocalAppSettings({ ...localAppSettings, expiry_alert_days: Number(e.target.value) })}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">Alert for items expiring within these days</p>
                   </div>
                 </div>
                 <div className="pt-4">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium">
+                  <button
+                    onClick={() => void handleSaveShopSettings()}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
+                  >
                     <Save className="w-5 h-5" />
                     Save Changes
                   </button>
@@ -350,22 +385,22 @@ export default function Settings() {
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input 
                       type="checkbox" 
-                      checked={appSettings.tax_enabled}
-                      onChange={(e) => setAppSettings({ ...appSettings, tax_enabled: e.target.checked })}
+                      checked={localAppSettings.tax_enabled}
+                      onChange={(e) => setLocalAppSettings({ ...localAppSettings, tax_enabled: e.target.checked })}
                       className="sr-only peer" 
                     />
                     <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                   </label>
                 </div>
 
-                {appSettings.tax_enabled && (
+                {localAppSettings.tax_enabled && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tax Name</label>
                       <input
                         type="text"
-                        value={appSettings.tax_name}
-                        onChange={(e) => setAppSettings({ ...appSettings, tax_name: e.target.value })}
+                        value={localAppSettings.tax_name}
+                        onChange={(e) => setLocalAppSettings({ ...localAppSettings, tax_name: e.target.value })}
                         className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="e.g., GST, VAT"
                       />
@@ -374,8 +409,8 @@ export default function Settings() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tax Percentage (%)</label>
                       <input
                         type="number"
-                        value={appSettings.tax_percentage}
-                        onChange={(e) => setAppSettings({ ...appSettings, tax_percentage: Number(e.target.value) })}
+                        value={localAppSettings.tax_percentage}
+                        onChange={(e) => setLocalAppSettings({ ...localAppSettings, tax_percentage: Number(e.target.value) })}
                         className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="e.g., 5, 12, 18"
                         min="0"
@@ -387,7 +422,7 @@ export default function Settings() {
                 )}
 
                 {/* Tax Preview */}
-                {appSettings.tax_enabled && (
+                {localAppSettings.tax_enabled && (
                   <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                     <h3 className="font-medium text-blue-900 mb-2">Tax Calculation Preview</h3>
                     <p className="text-sm text-blue-700">
@@ -395,14 +430,17 @@ export default function Settings() {
                     </p>
                     <div className="mt-2 space-y-1 text-sm">
                       <p className="text-blue-700">Subtotal: ₹100.00</p>
-                      <p className="text-blue-700">{appSettings.tax_name} ({appSettings.tax_percentage}%): ₹{(100 * appSettings.tax_percentage / 100).toFixed(2)}</p>
-                      <p className="font-semibold text-blue-900">Total: ₹{(100 + (100 * appSettings.tax_percentage / 100)).toFixed(2)}</p>
+                      <p className="text-blue-700">{localAppSettings.tax_name} ({localAppSettings.tax_percentage}%): ₹{(100 * localAppSettings.tax_percentage / 100).toFixed(2)}</p>
+                      <p className="font-semibold text-blue-900">Total: ₹{(100 + (100 * localAppSettings.tax_percentage / 100)).toFixed(2)}</p>
                     </div>
                   </div>
                 )}
 
                 <div className="pt-4">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium">
+                  <button
+                    onClick={() => void handleSaveShopSettings()}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
+                  >
                     <Save className="w-5 h-5" />
                     Save Tax Settings
                   </button>
@@ -433,7 +471,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                     <input
                       type="text"
-                      defaultValue={user?.name || ''}
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -451,7 +490,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     <input
                       type="tel"
-                      defaultValue={user?.phone || ''}
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                       placeholder="Enter phone number"
                       className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                     />
@@ -468,7 +508,10 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="pt-4">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium">
+                  <button
+                    onClick={() => void handleSaveProfile()}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
+                  >
                     <Save className="w-5 h-5" />
                     Save Changes
                   </button>
@@ -516,7 +559,10 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="pt-4">
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium">
+                    <button
+                      onClick={() => void refreshData()}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
+                    >
                       <Save className="w-5 h-5" />
                       Save & Test Connection
                     </button>
@@ -616,7 +662,10 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium">
+                  <button
+                    onClick={() => void refreshData()}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium"
+                  >
                     <RefreshCw className="w-5 h-5" />
                     Force Sync Now
                   </button>
@@ -661,6 +710,8 @@ export default function Settings() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                       <input
                         type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                         className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
@@ -668,6 +719,8 @@ export default function Settings() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                       <input
                         type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                         className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
@@ -675,10 +728,15 @@ export default function Settings() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                       <input
                         type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                         className="w-full px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium">
+                    <button
+                      onClick={() => void handleUpdatePassword()}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
+                    >
                       Update Password
                     </button>
                   </div>
@@ -739,7 +797,7 @@ export default function Settings() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleSaveCategory}
+                  onClick={() => void handleSaveCategory()}
                   className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
                 >
                   {editingCategory ? 'Update' : 'Add'} Category
@@ -800,7 +858,7 @@ export default function Settings() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleSaveUnit}
+                  onClick={() => void handleSaveUnit()}
                   className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
                 >
                   {editingUnit ? 'Update' : 'Add'} Unit

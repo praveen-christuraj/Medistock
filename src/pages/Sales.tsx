@@ -15,8 +15,8 @@ import {
   FileText
 } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
-import { mockSales, mockMedicines, mockMedicineBatches, getBatchesByFEFO, defaultAppSettings } from '../data/mockData';
-import { Medicine, MedicineBatch, SaleItem, AppSettings, Sale } from '../types';
+import { Medicine, MedicineBatch, SaleItem, Sale } from '../types';
+import { useData } from '../context/DataContext';
 
 interface CartItem extends SaleItem {
   availableQty: number;
@@ -26,6 +26,7 @@ type DateFilter = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 type PaymentFilter = 'all' | 'cash' | 'card' | 'upi' | 'credit';
 
 export default function Sales() {
+  const { sales, medicines, medicineBatches, appSettings, createSale } = useData();
   const [showNewSale, setShowNewSale] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -47,23 +48,22 @@ export default function Sales() {
   const [discountType, setDiscountType] = useState<'amount' | 'percentage'>('amount');
   const [discountValue, setDiscountValue] = useState(0);
   
-  // Tax settings
-  const [appSettings] = useState<AppSettings>(defaultAppSettings);
-
   // Get medicines with their available batches (FEFO sorted)
   const medicinesWithBatches = useMemo(() => {
-    return mockMedicines.map(med => ({
+    return medicines.map(med => ({
       ...med,
-      batches: getBatchesByFEFO(med.id, mockMedicineBatches),
-      totalStock: mockMedicineBatches
+      batches: medicineBatches
+        .filter(batch => batch.medicine_id === med.id && batch.quantity > 0)
+        .sort((a, b) => new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()),
+      totalStock: medicineBatches
         .filter(b => b.medicine_id === med.id)
         .reduce((sum, b) => sum + b.quantity, 0)
     }));
-  }, []);
+  }, [medicineBatches, medicines]);
 
   // Apply filters to sales
   const filteredSales = useMemo(() => {
-    return mockSales.filter(sale => {
+    return sales.filter(sale => {
       // Search filter
       const matchesSearch = 
         sale.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -107,7 +107,7 @@ export default function Sales() {
       
       return matchesSearch && matchesPayment && matchesDate;
     });
-  }, [mockSales, searchQuery, paymentFilter, dateFilter, customDateFrom, customDateTo]);
+  }, [customDateFrom, customDateTo, dateFilter, paymentFilter, sales, searchQuery]);
 
   // Calculate summary stats
   const filteredStats = useMemo(() => {
@@ -237,8 +237,8 @@ export default function Sales() {
 
   const total = afterDiscount + taxAmount;
 
-  const handleCreateSale = () => {
-    const saleData = {
+  const handleCreateSale = async () => {
+    await createSale({
       customer_name: customerName,
       customer_phone: customerPhone,
       items: selectedItems,
@@ -251,10 +251,7 @@ export default function Sales() {
       tax_amount: taxAmount,
       total,
       payment_method: paymentMethod
-    };
-    
-    console.log('Sale Data:', saleData);
-    alert(`Sale completed!\nTotal: ₹${total.toFixed(2)}\nItems: ${selectedItems.length}`);
+    });
     
     setShowNewSale(false);
     setSelectedItems([]);
@@ -964,7 +961,7 @@ export default function Sales() {
                 </div>
 
                 <button
-                  onClick={handleCreateSale}
+                  onClick={() => void handleCreateSale()}
                   disabled={selectedItems.length === 0}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >

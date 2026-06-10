@@ -23,22 +23,23 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { useAnalytics } from '../context/AnalyticsContext';
+import { useData } from '../context/DataContext';
 import DateSlicer from '../components/analytics/DateSlicer';
 import KPICard from '../components/analytics/KPICard';
-import { mockMedicineBatches, defaultCategories } from '../data/mockData';
 import { differenceInDays } from 'date-fns';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function Dashboard() {
   const { filters, setFilters, data } = useAnalytics();
+  const { medicineBatches, categories, appSettings } = useData();
   
   // Calculate inventory alerts
-  const lowStockThreshold = 10;
-  const lowStockBatches = mockMedicineBatches.filter(b => b.quantity <= lowStockThreshold && b.quantity > 0);
-  const expiringBatches = mockMedicineBatches.filter(b => {
+  const lowStockThreshold = appSettings.low_stock_threshold;
+  const lowStockBatches = medicineBatches.filter(b => b.quantity <= lowStockThreshold && b.quantity > 0);
+  const expiringBatches = medicineBatches.filter(b => {
     const days = differenceInDays(new Date(b.expiry_date), new Date());
-    return days >= 0 && days <= 90;
+    return days >= 0 && days <= appSettings.expiry_alert_days;
   });
 
   return (
@@ -288,7 +289,7 @@ export default function Dashboard() {
               <div>
                 <p className="font-medium text-blue-800 text-sm">Inventory Status</p>
                 <p className="text-xs text-blue-700 mt-0.5">
-                  {mockMedicineBatches.reduce((sum, b) => sum + b.quantity, 0)} total units in stock
+                  {medicineBatches.reduce((sum, b) => sum + b.quantity, 0)} total units in stock
                 </p>
               </div>
             </div>
@@ -310,7 +311,7 @@ export default function Dashboard() {
           >
             All Categories
           </button>
-          {defaultCategories.slice(0, 8).map(cat => (
+          {categories.slice(0, 8).map(cat => (
             <button
               key={cat.id}
               onClick={() => setFilters(prev => ({ ...prev, categoryId: cat.id }))}

@@ -5,8 +5,8 @@ import {
   subQuarters, subYears, format, eachDayOfInterval, eachWeekOfInterval,
   eachMonthOfInterval, eachQuarterOfInterval, isWithinInterval
 } from 'date-fns';
-import { mockSales, mockMedicineBatches, mockMedicines } from '../data/mockData';
 import { Sale } from '../types';
+import { useData } from './DataContext';
 
 // Period types for drill-through
 export type PeriodType = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
@@ -141,13 +141,14 @@ const defaultFilters: AnalyticsFilters = {
 export function AnalyticsProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultFilters);
   const [drillPath, setDrillPath] = useState<{ type: PeriodType; label: string }[]>([]);
+  const { sales, medicineBatches, medicines } = useData();
 
   // Calculate analytics data based on filters
   const data = useMemo<AnalyticsData>(() => {
     const { dateRange, periodType, comparisonType, categoryId, paymentMethod } = filters;
     
     // Filter sales within date range
-    const filteredSales = mockSales.filter(sale => {
+    const filteredSales = sales.filter(sale => {
       const saleDate = new Date(sale.created_at);
       const inRange = isWithinInterval(saleDate, {
         start: startOfDay(dateRange.from),
@@ -155,7 +156,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       });
       
       const matchesCategory = !categoryId || sale.items.some(item => {
-        const medicine = mockMedicines.find(m => m.id === item.medicine_id);
+        const medicine = medicines.find(m => m.id === item.medicine_id);
         return medicine?.category_id === categoryId;
       });
       
@@ -180,7 +181,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const comparisonSales = comparisonRange ? mockSales.filter(sale => {
+    const comparisonSales = comparisonRange ? sales.filter(sale => {
       const saleDate = new Date(sale.created_at);
       return isWithinInterval(saleDate, {
         start: startOfDay(comparisonRange!.from),
@@ -193,7 +194,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       const revenue = sales.reduce((sum, s) => sum + s.total, 0);
       const cost = sales.reduce((sum, sale) => {
         return sum + sale.items.reduce((itemSum, item) => {
-          const batch = mockMedicineBatches.find(b => b.id === item.batch_id);
+          const batch = medicineBatches.find(b => b.id === item.batch_id);
           return itemSum + (batch?.purchase_price || 0) * item.quantity;
         }, 0);
       }, 0);
@@ -363,7 +364,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
     const categoryMap = new Map<string, { value: number; count: number }>();
     filteredSales.forEach(sale => {
       sale.items.forEach(item => {
-        const medicine = mockMedicines.find(m => m.id === item.medicine_id);
+        const medicine = medicines.find(m => m.id === item.medicine_id);
         const category = medicine?.category_name || 'Others';
         const existing = categoryMap.get(category) || { value: 0, count: 0 };
         categoryMap.set(category, {
@@ -435,7 +436,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
         closingBalance: runningBalance
       }
     };
-  }, [filters]);
+  }, [filters, medicineBatches, medicines, sales]);
 
   const setDateRange = (from: Date, to: Date) => {
     setFilters(prev => ({
