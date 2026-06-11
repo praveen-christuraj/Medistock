@@ -238,6 +238,10 @@ export default function Sales() {
   const total = afterDiscount + taxAmount;
 
   const handleCreateSale = async () => {
+    if (!confirm(`Create this sale for ₹${total.toFixed(2)}?`)) {
+      return;
+    }
+
     await createSale({
       customer_name: customerName,
       customer_phone: customerPhone,

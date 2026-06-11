@@ -19,7 +19,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { Medicine, Category, Unit } from '../types';
+import { Medicine } from '../types';
 import { useData } from '../context/DataContext';
 
 type StockFilter = 'all' | 'in-stock' | 'low-stock' | 'out-of-stock';
@@ -165,6 +165,10 @@ export default function Inventory() {
       return;
     }
 
+    if (!confirm(`Add "${medicineForm.name || 'this medicine'}" with initial stock?`)) {
+      return;
+    }
+
     await createMedicineWithBatch({
       medicine: {
         name: medicineForm.name || '',
@@ -199,6 +203,10 @@ export default function Inventory() {
 
   const handleRestock = async () => {
     if (!selectedMedicineForRestock) return;
+
+    if (!confirm(`Restock "${selectedMedicineForRestock.name}" with ${batchForm.quantity} units?`)) {
+      return;
+    }
 
     await restockMedicine({
       medicineId: selectedMedicineForRestock.id,

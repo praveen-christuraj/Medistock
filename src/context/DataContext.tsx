@@ -431,6 +431,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
     void loadAllData();
   }, [loadAllData]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let lastRefreshAt = 0;
+    const minIntervalMs = 5000;
+    const refreshIfAllowed = () => {
+      const now = Date.now();
+      if (now - lastRefreshAt < minIntervalMs) {
+        return;
+      }
+      lastRefreshAt = now;
+      void loadAllData();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfAllowed();
+      }
+    };
+
+    window.addEventListener('focus', refreshIfAllowed);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const intervalId = window.setInterval(refreshIfAllowed, 60000);
+
+    return () => {
+      window.removeEventListener('focus', refreshIfAllowed);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, [isAuthenticated, loadAllData]);
+
   const refreshData = useCallback(async () => {
     await loadAllData();
   }, [loadAllData]);

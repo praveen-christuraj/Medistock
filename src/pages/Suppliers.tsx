@@ -35,6 +35,10 @@ export default function Suppliers() {
   );
 
   const handleSubmit = async () => {
+    if (!confirm(editingSupplier ? 'Update this supplier?' : 'Add this supplier?')) {
+      return;
+    }
+
     await saveSupplier({
       id: editingSupplier?.id,
       name: formData.name || '',
@@ -121,7 +125,11 @@ export default function Suppliers() {
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => void deleteSupplier(supplier.id)}
+                  onClick={() => {
+                    if (confirm(`Delete supplier "${supplier.name}"?`)) {
+                      void deleteSupplier(supplier.id);
+                    }
+                  }}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />

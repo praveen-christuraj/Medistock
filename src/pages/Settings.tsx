@@ -89,6 +89,10 @@ export default function Settings() {
 
   // Category handlers
   const handleSaveCategory = async () => {
+    if (!confirm(editingCategory ? 'Update this category?' : 'Add this category?')) {
+      return;
+    }
+
     await saveCategory({
       id: editingCategory?.id,
       name: categoryForm.name,
@@ -113,6 +117,10 @@ export default function Settings() {
 
   // Unit handlers
   const handleSaveUnit = async () => {
+    if (!confirm(editingUnit ? 'Update this unit?' : 'Add this unit?')) {
+      return;
+    }
+
     await saveUnit({
       id: editingUnit?.id,
       name: unitForm.name,
@@ -136,16 +144,28 @@ export default function Settings() {
   };
 
   const handleSaveShopSettings = async () => {
+    if (!confirm('Save shop settings?')) {
+      return;
+    }
+
     await saveAppSettings(localAppSettings);
   };
 
   const handleSaveProfile = async () => {
+    if (!confirm('Update profile details?')) {
+      return;
+    }
+
     await updateProfile(profileForm);
   };
 
   const handleUpdatePassword = async () => {
     if (!passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword) {
       throw new Error('Passwords do not match.');
+    }
+
+    if (!confirm('Update account password?')) {
+      return;
     }
 
     await updatePassword(passwordForm.newPassword);

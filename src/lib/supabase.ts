@@ -4,6 +4,24 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
+export function getSupabaseConfigStatus(): { ok: boolean; message: string } {
+  if (!supabaseUrl || supabaseUrl.includes('your-project.supabase.co')) {
+    return {
+      ok: false,
+      message: 'Supabase URL is not configured. Set VITE_SUPABASE_URL in .env.local.',
+    };
+  }
+
+  if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key') {
+    return {
+      ok: false,
+      message: 'Supabase anon/public key is not configured. Set VITE_SUPABASE_ANON_KEY in .env.local.',
+    };
+  }
+
+  return { ok: true, message: 'Supabase config looks valid.' };
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // ======================================================================

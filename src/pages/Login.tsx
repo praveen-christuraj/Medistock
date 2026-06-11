@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Pill, Eye, EyeOff, LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { getSupabaseConfigStatus } from '../lib/supabase';
 
 export default function Login() {
   const { signIn } = useAuth();
+  const supabaseConfig = getSupabaseConfigStatus();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +15,11 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!supabaseConfig.ok) {
+      setError(supabaseConfig.message);
+      return;
+    }
 
     if (!email.trim()) {
       setError('Please enter your email address');
@@ -120,7 +127,7 @@ export default function Login() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !supabaseConfig.ok}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all font-semibold shadow-lg shadow-emerald-200 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (

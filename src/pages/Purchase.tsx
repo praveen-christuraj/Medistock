@@ -97,6 +97,11 @@ export default function Purchase() {
   }, [purchases]);
 
   const handleCreatePurchase = async () => {
+    const label = invoiceNumber?.trim() ? invoiceNumber.trim() : 'this purchase';
+    if (!confirm(`Save ${label} for ₹${subtotal.toFixed(2)}?`)) {
+      return;
+    }
+
     await createPurchase({
       supplier_id: selectedSupplier,
       invoice_number: invoiceNumber,
